@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Weather App</h1>
+
+    <!-- Search Form -->
+    <form id="searchForm">
+      <input type="text" id="cityInput" placeholder="Enter city" required>
+      <button type="submit" class="add-btn">Search</button>
+    </form>
+
+    <!-- Weather Display -->
+    <div id="weatherInfo"></div>
+
+    <!-- Favorite Cities -->
+    <h2>Favorite Cities</h2>
+    <ul id="favoritesList">
+      {% for city in favorites %}
+        <li>{{ city }} <button onclick="removeFavorite('{{ city }}')" class="delete-btn">Remove</button></li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:5000";
+
+    // Search weather
+    document.getElementById("searchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const city = document.getElementById("cityInput").value;
+      const res = await fetch(`${API_BASE}/weather?city=${city}`);
+      const data = await res.json();
+      const infoDiv = document.getElementById("weatherInfo");
+      if (data.error) {
+        infoDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+      } else {
+        infoDiv.innerHTML = `
+          <h3>${data.city}</h3>
+          <p>Temperature: ${data.temperature}°C</p>
+          <p>Wind Speed: ${data.windspeed} km/h</p>
+          <p>Weather Code: ${data.weathercode}</p>
+          <button onclick="addFavorite('${data.city}')" class="add-btn">Add to Favorites</button>
+        `;
+      }
+    });
+
+    // Add favorite city
+    async function addFavorite(city) {
+      await fetch(`${API_BASE}/favorites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city })
+      });
+      loadFavorites();
+    }
+
+    // Remove favorite city
+    async function removeFavorite(city) {
+      await fetch(`${API_BASE}/favorites/${city}`, { method: "DELETE" });
+      loadFavorites();
+    }
+
+    // Load favorites
+    async function loadFavorites() {
+      const res = await fetch(`${API_BASE}/favorites`);
+      const data = await res.json();
+      const list = document.getElementById("favoritesList");
+      list.innerHTML = "";
+      data.favorites.forEach(city => {
+        list.innerHTML += `<li>${city} <button onclick="removeFavorite('${city}')" class="delete-btn">Remove</button></li>`;
+      });
+    }
+
+    // Initial load
+    loadFavorites();
+  </script>
+</body>
+</html>

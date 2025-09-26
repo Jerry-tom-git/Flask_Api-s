@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Search App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Movie Search App</h1>
+
+    <!-- Search Form -->
+    <form id="searchForm">
+      <input type="text" id="titleInput" placeholder="Enter movie title" required>
+      <button type="submit" class="add-btn">Search</button>
+    </form>
+
+    <!-- Movie Info -->
+    <div id="movieInfo"></div>
+
+    <!-- Favorite Movies -->
+    <h2>My Favorite Movies</h2>
+    <ul id="favoritesList">
+      {% for movie in favorites %}
+        <li>
+          <img src="{{ movie.poster }}" width="50">
+          <strong>{{ movie.title }}</strong> - {{ movie.released }} - IMDB: {{ movie.imdb }}
+          <button onclick="removeFavorite('{{ movie.title }}')" class="delete-btn">Remove</button>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:5000";
+    let currentMovie = {};
+
+    // Search movie
+    document.getElementById("searchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("titleInput").value;
+
+      const res = await fetch(`${API_BASE}/search?title=${title}`);
+      const data = await res.json();
+
+      const infoDiv = document.getElementById("movieInfo");
+      if (data.error) {
+        infoDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+      } else {
+        currentMovie = data;
+        infoDiv.innerHTML = `
+          <img src="${data.poster}" width="150"><br>
+          <strong>${data.title}</strong><br>
+          Actors: ${data.actors}<br>
+          Released: ${data.released}<br>
+          IMDB Rating: ${data.imdb}<br>
+          <button onclick="addFavorite()" class="add-btn">Add to Favorites</button>
+        `;
+      }
+    });
+
+    // Add favorite
+    async function addFavorite() {
+      await fetch(`${API_BASE}/favorites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentMovie)
+      });
+      loadFavorites();
+    }
+
+    // Remove favorite
+    async function removeFavorite(title) {
+      await fetch(`${API_BASE}/favorites/${title}`, { method: "DELETE" });
+      loadFavorites();
+    }
+
+    // Load favorites
+    async function loadFavorites() {
+      const res = await fetch(`${API_BASE}/favorites`);
+      const data = await res.json();
+      const list = document.getElementById("favoritesList");
+      list.innerHTML = "";
+      data.favorites.forEach(movie => {
+        list.innerHTML += `
+          <li>
+            <img src="${movie.poster}" width="50">
+            <strong>${movie.title}</strong> - ${movie.released} - IMDB: ${movie.imdb}
+            <button onclick="removeFavorite('${movie.title}')" class="delete-btn">Remove</button>
+          </li>
+        `;
+      });
+    }
+
+    // Initial load
+    loadFavorites();
+  </script>
+</body>
+</html>

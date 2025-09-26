@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Joke Generator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Joke Generator</h1>
+
+    <!-- Joke Display -->
+    <div id="jokeBox">
+      <p id="setup"></p>
+      <p id="punchline"></p>
+      <button onclick="nextJoke()" class="add-btn">Next Joke</button>
+      <button onclick="likeJoke()" class="add-btn">Like</button>
+    </div>
+
+    <!-- Favorite Jokes -->
+    <h2>My Favorite Jokes</h2>
+    <ul id="favoritesList">
+      {% for joke in favorites %}
+        <li>{{ joke.setup }} - {{ joke.punchline }} 
+        <button onclick="removeFavorite({loop.index0})" class="delete-btn">Remove</button>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:5000";
+    let currentJoke = {};
+
+    // Fetch and display random joke
+    async function nextJoke() {
+      const res = await fetch(`${API_BASE}/joke`);
+      const data = await res.json();
+      currentJoke = data;
+      document.getElementById("setup").textContent = data.setup;
+      document.getElementById("punchline").textContent = data.punchline;
+    }
+
+    // Like current joke
+    async function likeJoke() {
+      await fetch(`${API_BASE}/favorites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentJoke)
+      });
+      loadFavorites();
+    }
+
+    // Load favorite jokes
+    async function loadFavorites() {
+      const res = await fetch(`${API_BASE}/favorites`);
+      const data = await res.json();
+      const list = document.getElementById("favoritesList");
+      list.innerHTML = "";
+      data.favorites.forEach((joke, index) => {
+        list.innerHTML += `
+          <li>${joke.setup} - ${joke.punchline} 
+          <button onclick="removeFavorite(${index})" class="delete-btn">Remove</button>
+          </li>`;
+      });
+    }
+
+    // Remove a favorite joke
+    async function removeFavorite(index) {
+      await fetch(`${API_BASE}/favorites/${index}`, { method: "DELETE" });
+      loadFavorites();
+    }
+
+    // Initial load
+    nextJoke();
+    loadFavorites();
+  </script>
+</body>
+</html>

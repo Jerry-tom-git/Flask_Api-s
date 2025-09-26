@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notes App</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Notes App</h1>
+
+    <!-- Add Note Form -->
+    <form id="addNoteForm">
+      <input type="text" id="title" placeholder="Title" required>
+      <textarea id="content" placeholder="Content" required></textarea>
+      <button type="submit" class="add-btn">Add Note</button>
+    </form>
+
+    <!-- Notes List -->
+    <h2>All Notes</h2>
+    <ul id="notesList">
+      {% for note in notes %}
+        <li>
+          <strong>{{ note.title }}</strong>: {{ note.content }}
+          <button onclick="editNote({{ note.id }})" class="update-btn">Edit</button>
+          <button onclick="deleteNote({{ note.id }})" class="delete-btn">Delete</button>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:5000";
+
+    // Add note
+    document.getElementById("addNoteForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value;
+      const content = document.getElementById("content").value;
+
+      await fetch(`${API_BASE}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, content })
+      });
+      document.getElementById("addNoteForm").reset();
+      loadNotes();
+    });
+
+    // Load notes
+    async function loadNotes() {
+      const res = await fetch(`${API_BASE}/notes`);
+      const notes = await res.json();
+      const list = document.getElementById("notesList");
+      list.innerHTML = "";
+      notes.forEach(note => {
+        list.innerHTML += `
+          <li>
+            <strong>${note.title}</strong>: ${note.content}
+            <button onclick="editNote(${note.id})" class="update-btn">Edit</button>
+            <button onclick="deleteNote(${note.id})" class="delete-btn">Delete</button>
+          </li>
+        `;
+      });
+    }
+
+    // Edit note
+    async function editNote(id) {
+      const newTitle = prompt("Enter new title:");
+      const newContent = prompt("Enter new content:");
+      if (!newTitle || !newContent) return;
+
+      await fetch(`${API_BASE}/notes/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle, content: newContent })
+      });
+      loadNotes();
+    }
+
+    // Delete note
+    async function deleteNote(id) {
+      if (confirm("Are you sure you want to delete this note?")) {
+        await fetch(`${API_BASE}/notes/${id}`, { method: "DELETE" });
+        loadNotes();
+      }
+    }
+
+    // Initial load
+    loadNotes();
+  </script>
+</body>
+</html>
